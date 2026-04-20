@@ -13,3 +13,12 @@ app.get("/", (req, res) => {
 app.listen(5000, () => {
     console.log("Server is running on port 5000");
 })
+
+app.post("/contact", (req, res) => {
+  const { name, email, message } = req.body;
+
+  console.log("New Contact Form Submission:");
+  console.log({ name, email, message });
+
+  res.json({ success: true, message: "Message received!" });
+});
