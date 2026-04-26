@@ -7,7 +7,7 @@ const Navbar = () => {
         
         {/* Logo / Brand */}
         <div className="text-xl font-semibold text-white">
-          Resume<span className="text-blue-600">AI</span>
+          Resume<span className="text-blue-600">GPT</span>
         </div>
 
         {/* Links */}

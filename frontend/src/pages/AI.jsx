@@ -1,37 +1,99 @@
 import React, { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 const AI = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  const handleSend = async () => {
+    if (!input.trim() && !file) return;
 
-    setMessages([...messages, { sender: "user", text: input }]);
+    const userMessage = input || "Analyze my resume";
+
+    // Add user message
+    setMessages((prev) => [
+      ...prev,
+      { sender: "user", text: userMessage },
+    ]);
+
+    const formData = new FormData();
+
+    if (file) {
+      formData.append("resume", file);
+    }
+
+    formData.append("prompt", userMessage);
+
     setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("http://localhost:5000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      console.log("AI response:", data);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: data.reply || "No response from AI",
+        },
+      ]);
+
+      // optional: clear file after successful send
+      setFile(null);
+
+    } catch (err) {
+      console.error(err);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "ai",
+          text: "Error: Unable to contact AI",
+        },
+      ]);
+    }
+
+    setLoading(false);
   };
 
   const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        text: `📄 Uploaded resume: ${selectedFile.name}`,
+      },
+    ]);
   };
 
   return (
     <div className="flex flex-col h-[90vh] max-w-5xl mx-auto p-4">
 
-      {/* 🔹 Header */}
+      {/* Header */}
       <div className="mb-4">
         <h1 className="text-2xl font-bold">AI Resume Assistant</h1>
         <p className="text-sm text-gray-500">
-          Upload your resume and ask for feedback
+          Upload your resume and chat with AI
         </p>
       </div>
 
-      {/* 🔹 File Status */}
+      {/* File Status */}
       <div className="mb-3 text-sm">
         {file ? (
           <span className="text-green-600">
-            📄 {file.name} uploaded
+            📄 {file.name} ready
           </span>
         ) : (
           <span className="text-gray-500">
@@ -40,11 +102,11 @@ const AI = () => {
         )}
       </div>
 
-      {/* 🔹 Chat Messages */}
+      {/* Chat Area */}
       <div className="flex-1 overflow-y-auto bg-gray-50 rounded-xl p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-gray-400 text-center mt-10">
-            Start by uploading your resume or asking a question
+            Upload a resume or ask a question to begin
           </div>
         )}
 
@@ -57,12 +119,21 @@ const AI = () => {
                 : "bg-white border"
             }`}
           >
-            {msg.text}
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown>{msg.text}</ReactMarkdown>
+            </div>
           </div>
         ))}
+
+        {/* Typing indicator */}
+        {loading && (
+          <div className="bg-white border p-3 rounded-xl w-fit">
+            AI is analyzing...
+          </div>
+        )}
       </div>
 
-      {/* 🔹 Quick Actions */}
+      {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mt-3">
         {[
           "Analyze Resume",
@@ -80,7 +151,7 @@ const AI = () => {
         ))}
       </div>
 
-      {/* 🔹 Input Area */}
+      {/* Input Area */}
       <div className="mt-3 flex items-center gap-2">
 
         {/* File Upload */}
@@ -94,7 +165,7 @@ const AI = () => {
           />
         </label>
 
-        {/* Text Input */}
+        {/* Input */}
         <input
           type="text"
           value={input}
@@ -103,12 +174,13 @@ const AI = () => {
           className="flex-1 border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
 
-        {/* Send Button */}
+        {/* Send */}
         <button
           onClick={handleSend}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
         >
-          Send
+          {loading ? "..." : "Send"}
         </button>
       </div>
     </div>
